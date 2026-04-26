@@ -14,13 +14,17 @@ AUDIO_BITRATE="${QUIETSHRINK_AUDIO_BITRATE:-96k}"
 JSON_OUTPUT="${QUIETSHRINK_JSON:-false}"
 VERBOSE="${QUIETSHRINK_VERBOSE:-false}"
 
-# Quality presets → q value
-declare -A PRESETS=(
-  [tiny]=50         # ~90% reduction, SSIM ~0.95 (good but not transparent)
-  [balanced]=55     # ~88% reduction, SSIM ~0.99 (very high quality)
-  [transparent]=60  # ~87% reduction, SSIM ~0.99+ (visually lossless)
-  [pristine]=70     # ~84% reduction, SSIM ~0.997 (near-source)
-)
+# Quality presets → q value (no associative array — bash 3.2 compat)
+PRESET_NAMES="tiny balanced transparent pristine"
+preset_q() {
+  case "$1" in
+    tiny)        echo 50 ;;  # ~90% reduction, SSIM ~0.95 (good but not transparent)
+    balanced)    echo 55 ;;  # ~88% reduction, SSIM ~0.99 (very high quality)
+    transparent) echo 60 ;;  # ~87% reduction, SSIM ~0.99+ (visually lossless)
+    pristine)    echo 70 ;;  # ~84% reduction, SSIM ~0.997 (near-source)
+    *)           echo "" ;;
+  esac
+}
 
 # Color output (only if terminal)
 if [ -t 1 ]; then
@@ -146,12 +150,12 @@ done
 check_requirements
 
 # Validate quality preset
-if [ -z "${PRESETS[$QUALITY]:-}" ]; then
+Q_VALUE=$(preset_q "$QUALITY")
+if [ -z "$Q_VALUE" ]; then
   log "${C_RED}✗${C_RESET} Unknown quality preset: $QUALITY"
-  log "  Available: ${!PRESETS[*]}"
+  log "  Available: $PRESET_NAMES"
   exit 1
 fi
-Q_VALUE="${PRESETS[$QUALITY]}"
 
 # Auto-derive output filename
 if [ -z "$OUTPUT" ]; then
