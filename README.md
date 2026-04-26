@@ -18,15 +18,11 @@
 </p>
 
 <p align="center">
-  <img src="examples/demo.gif" alt="quietshrink demo — 89% reduction in 4 seconds" width="850">
+  <img src="examples/promo.gif" alt="quietshrink — animated promo" width="850">
 </p>
 
 <p align="center">
   <sub><a href="examples/promo.html">▶ Watch the 30s animated promo</a></sub>
-</p>
-
-<p align="center">
-  <img src="examples/promo.gif" alt="quietshrink — animated promo" width="850">
 </p>
 
 ---
