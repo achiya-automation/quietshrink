@@ -14,18 +14,19 @@ import click
 
 from . import __version__
 
-# Find the bash CLI: bundled fallback, then $PATH
+# Find the bash CLI: prefer $PATH (installed), fall back to bundled (dev mode)
 PACKAGE_DIR = Path(__file__).parent
-BUNDLED_BIN = PACKAGE_DIR.parent.parent.parent.parent / "bin" / "quietshrink"
+# Walk up to project root (cli_anything/quietshrink → cli_anything → agent-harness → project_root)
+BUNDLED_BIN = PACKAGE_DIR.parent.parent.parent / "bin" / "quietshrink"
 
 
 def find_bash_cli() -> Path:
     """Locate the quietshrink bash binary."""
-    if BUNDLED_BIN.exists():
-        return BUNDLED_BIN
     in_path = shutil.which("quietshrink")
     if in_path:
         return Path(in_path)
+    if BUNDLED_BIN.exists():
+        return BUNDLED_BIN
     raise click.ClickException(
         "quietshrink bash CLI not found. Install via:\n"
         "  curl -fsSL https://raw.githubusercontent.com/achiya-automation/quietshrink/main/install.sh | bash"

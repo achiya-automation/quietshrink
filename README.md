@@ -13,6 +13,10 @@
   <a href="https://hkuds.github.io/CLI-Anything/"><img src="https://img.shields.io/badge/CLI--Hub-agent--ready-ff69b4" alt="CLI-Anything"></a>
 </p>
 
+<p align="center">
+  <img src="examples/demo.gif" alt="quietshrink demo" width="850">
+</p>
+
 ---
 
 ## The problem
