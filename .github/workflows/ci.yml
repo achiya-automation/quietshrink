@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: brew install ffmpeg
+
+      - name: Verify hevc_videotoolbox available
+        run: ffmpeg -hide_banner -encoders | grep hevc_videotoolbox
+
+      - name: Make scripts executable
+        run: chmod +x bin/quietshrink tests/test_cli.sh
+
+      - name: Run smoke tests
+        run: bash tests/test_cli.sh
+
+      - name: Test help
+        run: bin/quietshrink --help
+
+      - name: Test version
+        run: bin/quietshrink --version
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShellCheck
+        run: shellcheck bin/quietshrink install.sh tests/test_cli.sh

@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+._*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.pytest_cache/
+.coverage
+.tox/
+build/
+dist/
+venv/
+.venv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Test artifacts
+/tmp/
+/test_output/
+*.mov.compressed
+*_compressed.mov
