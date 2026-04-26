@@ -20,6 +20,10 @@ venv/
 .idea/
 *.swp
 
+# Lint caches
+.ruff_cache/
+.mypy_cache/
+
 # Test artifacts
 /tmp/
 /test_output/
