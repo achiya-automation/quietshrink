@@ -14,7 +14,15 @@
 </p>
 
 <p align="center">
-  <img src="examples/demo.gif" alt="quietshrink demo" width="850">
+  <img src="examples/social-card.png" alt="quietshrink — Quiet. Tiny. Lossless." width="850">
+</p>
+
+<p align="center">
+  <img src="examples/demo.gif" alt="quietshrink demo — 89% reduction in 4 seconds" width="850">
+</p>
+
+<p align="center">
+  <sub><a href="examples/promo.html">▶ Watch the 30s animated promo</a></sub>
 </p>
 
 ---
