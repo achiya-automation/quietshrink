@@ -25,6 +25,10 @@
   <sub><a href="examples/promo.html">▶ Watch the 30s animated promo</a></sub>
 </p>
 
+<p align="center">
+  <img src="examples/promo.gif" alt="quietshrink — animated promo" width="850">
+</p>
+
 ---
 
 ## The problem
