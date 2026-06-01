@@ -88,6 +88,27 @@ if [ -f "$SCRIPT_DIR/fixtures/sample.mov" ]; then
   fi
 fi
 
+# Test 6: timing fidelity — output must keep the source's real duration.
+# Regression guard for the VFR bug where "setpts=N/FRAME_RATE/TB" re-stamped the
+# surviving (decimated) frames by index at the nominal fps, crushing the video into
+# a fraction of its length (played too fast) and freezing the last frame for the
+# rest of the audio. Only runs where the hardware encoder exists (skipped on CI Linux).
+if command -v ffprobe >/dev/null 2>&1 && ffmpeg -hide_banner -encoders 2>/dev/null | grep -q hevc_videotoolbox; then
+  echo "test: timing fidelity (no speed-up / frozen tail)"
+  TIMING_DIR=$(mktemp -d)
+  TIMING_SRC="$TIMING_DIR/src.mov"
+  TIMING_OUT="$TIMING_DIR/out.mov"
+  # 10s clip: 20 unique frames stretched to 60fps (heavy duplicate frames) + audio
+  ffmpeg -y -f lavfi -i "testsrc2=s=320x240:r=2:d=10" -f lavfi -i "sine=frequency=440:d=10" \
+    -vf "fps=60" -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "$TIMING_SRC" >/dev/null 2>&1
+  "$BIN" -q tiny "$TIMING_SRC" "$TIMING_OUT" >/dev/null 2>&1
+  TIMING_FMT=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$TIMING_OUT")
+  TIMING_VID=$(ffprobe -v error -select_streams v:0 -show_entries stream=duration -of default=nw=1:nk=1 "$TIMING_OUT")
+  TIMING_VERDICT=$(awk -v f="$TIMING_FMT" -v v="$TIMING_VID" 'BEGIN { d=f-v; if (d<0) d=-d; print (d<1.5)?"ok":"bad" }')
+  assert_equal "$TIMING_VERDICT" "ok" "compressed video duration tracks source (video=${TIMING_VID}s vs container=${TIMING_FMT}s)"
+  rm -rf "$TIMING_DIR"
+fi
+
 echo
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ]

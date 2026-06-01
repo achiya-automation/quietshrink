@@ -195,8 +195,16 @@ LOG_LEVEL="error"
 # Run ffmpeg
 START_TIME=$(date +%s)
 
+# mpdecimate drops duplicate frames (common in screen recordings).
+# We keep the ORIGINAL timestamps of the surviving frames via -fps_mode vfr,
+# so a static frame is simply held for the duration it was actually on screen.
+# (The old "setpts=N/FRAME_RATE/TB" re-stamped frames by index at the nominal
+#  r_frame_rate — e.g. 120fps — which crushed the video into a fraction of its
+#  real length: footage played ~ realtime×fps/avg too fast and the last frame
+#  froze for the rest of the audio. Screen recordings are VFR, so never do that.)
 ffmpeg -i "$INPUT" \
-  -vf "mpdecimate,setpts=N/FRAME_RATE/TB" \
+  -vf "mpdecimate" \
+  -fps_mode:v vfr \
   -c:v hevc_videotoolbox -q:v "$Q_VALUE" \
   -prio_speed 0 -spatial_aq 1 \
   -g "$GOP" \
