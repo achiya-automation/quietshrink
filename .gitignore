@@ -29,3 +29,4 @@ venv/
 /test_output/
 *.mov.compressed
 *_compressed.mov
+tests/_*/

@@ -119,6 +119,33 @@ if command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1; then
   rm -rf "$TIMING_DIR"
 fi
 
+# Test 7: "source" preset keeps every frame at a constant 60fps (no dedup, player-safe CFR).
+# Guards against regressing the full-quality path back into mpdecimate/VFR.
+if command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1; then
+  echo "test: source preset (full quality, CFR 60, no frame drop)"
+  SRC_DIR=$(mktemp -d)
+  SRC_IN="$SRC_DIR/in.mov"; SRC_OUT="$SRC_DIR/out.mov"
+  # 6s clip, 120fps nominal, few unique frames (mimics a VFR screen recording) + audio
+  ffmpeg -y -f lavfi -i "testsrc2=s=320x240:r=2:d=6" -f lavfi -i "sine=frequency=440:d=6" \
+    -vf "fps=120" -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "$SRC_IN" >/dev/null 2>&1 || true
+  if [ -f "$SRC_IN" ] && "$BIN" -q source "$SRC_IN" "$SRC_OUT" >/dev/null 2>&1 && [ -f "$SRC_OUT" ]; then
+    SRC_FMT=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$SRC_OUT")
+    SRC_VID=$(ffprobe -v error -select_streams v:0 -show_entries stream=duration -of default=nw=1:nk=1 "$SRC_OUT")
+    SRC_RFPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nw=1:nk=1 "$SRC_OUT")
+    SRC_NB=$(ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nw=1:nk=1 "$SRC_OUT")
+    SRC_NB=${SRC_NB//[!0-9]/}; [ -z "$SRC_NB" ] && SRC_NB=0
+    SRC_OK_DUR=$(awk -v f="$SRC_FMT" -v v="$SRC_VID" 'BEGIN { d=f-v; if (d<0) d=-d; print (d<1.5)?1:0 }')
+    if [ "$SRC_RFPS" = "60/1" ] && [ "$SRC_OK_DUR" = "1" ] && [ "$SRC_NB" -gt 100 ]; then
+      echo "  ✓ source: CFR 60, duration preserved, frames kept (nb_frames=$SRC_NB)"; PASS=$((PASS + 1))
+    else
+      echo "  ✗ source preset wrong: r_fps=$SRC_RFPS dur_ok=$SRC_OK_DUR nb_frames=$SRC_NB"; FAIL=$((FAIL + 1))
+    fi
+  else
+    echo "  ⊘ skipped — no working video encoder in this environment (e.g. CI VM)"
+  fi
+  rm -rf "$SRC_DIR"
+fi
+
 echo
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ]

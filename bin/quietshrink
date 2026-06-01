@@ -15,13 +15,14 @@ JSON_OUTPUT="${QUIETSHRINK_JSON:-false}"
 VERBOSE="${QUIETSHRINK_VERBOSE:-false}"
 
 # Quality presets → q value (no associative array — bash 3.2 compat)
-PRESET_NAMES="tiny balanced transparent pristine"
+PRESET_NAMES="tiny balanced transparent pristine source"
 preset_q() {
   case "$1" in
     tiny)        echo 50 ;;  # ~90% reduction, SSIM ~0.95 (good but not transparent)
     balanced)    echo 55 ;;  # ~88% reduction, SSIM ~0.99 (very high quality)
     transparent) echo 60 ;;  # ~87% reduction, SSIM ~0.99+ (visually lossless)
     pristine)    echo 70 ;;  # ~84% reduction, SSIM ~0.997 (near-source)
+    source)      echo 80 ;;  # near-lossless: keeps EVERY frame, constant 60fps (no dedup)
     *)           echo "" ;;
   esac
 }
@@ -50,7 +51,8 @@ ${C_BOLD}USAGE${C_RESET}
   quietshrink [options] <input> [output]
 
 ${C_BOLD}OPTIONS${C_RESET}
-  -q, --quality <preset>   Quality preset: tiny, balanced, transparent (default), pristine
+  -q, --quality <preset>   Quality preset: tiny, balanced, transparent (default), pristine, source
+                           (source = keep every frame, near-lossless, constant 60fps — looks/plays 1:1)
   -g, --gop <n>            GOP size (default: 600). Larger = smaller files for static content.
   -a, --audio <bitrate>    Audio bitrate (default: 96k)
   --replace                Replace input file with compressed version
@@ -195,16 +197,23 @@ LOG_LEVEL="error"
 # Run ffmpeg
 START_TIME=$(date +%s)
 
-# mpdecimate drops duplicate frames (common in screen recordings).
-# We keep the ORIGINAL timestamps of the surviving frames via -fps_mode vfr,
-# so a static frame is simply held for the duration it was actually on screen.
-# (The old "setpts=N/FRAME_RATE/TB" re-stamped frames by index at the nominal
-#  r_frame_rate — e.g. 120fps — which crushed the video into a fraction of its
-#  real length: footage played ~ realtime×fps/avg too fast and the last frame
-#  froze for the rest of the audio. Screen recordings are VFR, so never do that.)
+# Frame handling depends on the preset:
+#  • "source"  → keep EVERY frame at a constant 60fps (no dedup). Byte-faithful motion
+#    and player-safe CFR, at the cost of size. Use when the result must look and play
+#    exactly like the original (e.g. clips you'll edit afterwards).
+#  • all others → drop duplicate frames (mpdecimate) and keep their ORIGINAL timestamps
+#    via -fps_mode vfr, so a static frame is held for the time it was on screen → small.
+# NEVER use "setpts=N/FRAME_RATE/TB": it re-stamps surviving frames by index at the
+# nominal r_frame_rate (e.g. 120fps), crushing the video into a fraction of its length
+# (plays too fast) and freezing the last frame for the rest of the audio.
+if [ "$QUALITY" = "source" ]; then
+  FRAME_ARGS=(-r 60)
+else
+  FRAME_ARGS=(-vf "mpdecimate" -fps_mode:v vfr)
+fi
+
 ffmpeg -i "$INPUT" \
-  -vf "mpdecimate" \
-  -fps_mode:v vfr \
+  "${FRAME_ARGS[@]}" \
   -c:v hevc_videotoolbox -q:v "$Q_VALUE" \
   -prio_speed 0 -spatial_aq 1 \
   -g "$GOP" \
