@@ -200,3 +200,7 @@ Distributed via [CLI-Anything](https://hkuds.github.io/CLI-Anything/) for AI age
 <p align="center">
   <sub>If quietshrink saved you a fan spin-up, consider giving it a ⭐</sub>
 </p>
+
+---
+
+<p align="center"><sub>Built by <b><a href="https://achiya-automation.com">Achiya Automation</a></b> — automation &amp; AI tooling.</sub></p>
